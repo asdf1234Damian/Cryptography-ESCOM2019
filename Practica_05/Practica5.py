@@ -2,11 +2,13 @@ import os
 import tkinter as tk
 from PIL import Image, ImageTk
 from cryptography.hazmat.primitives.ciphers import Cipher, algorithms, modes
+from cryptography.hazmat.primitives import  padding   
 from cryptography.hazmat.backends import default_backend
 from tkinter import Tk, Label, Button,filedialog,Entry,E,W,N,S,Checkbutton,Label, Radiobutton,messagebox
 
 class CipherGUI:
     def __init__(self, master):
+        self.padder = padding.PKCS7(128).padder()
         self.encMode = None
         self.algorithm = None
         self.keyVal = None
@@ -77,15 +79,15 @@ class CipherGUI:
         self.thumbnail.save(filename,format = 'BMP')
 
     def getkey(self):
-        if len(self.ent_key.get())!=8:
-            messagebox.showwarning('','Key value must be 8 characters long ♥')
+        if len(self.ent_key.get())!=16:
+            messagebox.showwarning('','Key value must be 16 characters long ♥')
             return None
         else:
             return bytes(self.ent_key.get(),'utf-8')
 
     def getiv(self):
-        if len(self.ent_iv.get()) != 8:
-            messagebox.showwarning('', 'I Vector value must be 8 characters long ♥')
+        if len(self.ent_iv.get()) != 16:
+            messagebox.showwarning('', 'I Vector value must be 16 characters long ♥')
             return None 
         else:
             return bytes(self.ent_key.get(), 'utf-8')
@@ -101,15 +103,18 @@ class CipherGUI:
         key = self.getkey()
         if key == None:
             return
-        cipher = Cipher(algorithms.TripleDES(key),
+        cipher = Cipher(algorithms.AES(key),
                         modes.ECB(), backend=default_backend())
         if self.encrypting:
             enc = cipher.encryptor()
-            ct = enc.update(self.thumbnail.tobytes()) + enc.finalize()
+            padder = padding.PKCS7(128).padder()
+            data = padder.update(self.thumbnail.tobytes()) + padder.finalize()
+            ct = enc.update(data) + enc.finalize()
         else:
             dec = cipher.decryptor()
-            ct = dec.update(self.thumbnail.tobytes()
-                                  ) + dec.finalize()
+            padder = padding.PKCS7(128).padder()
+            data = padder.update(self.thumbnail.tobytes()) + padder.finalize()
+            ct = dec.update(data) + dec.finalize()
         self.thumbnail = Image.frombytes(data = ct,
             mode=self.thumbnail.mode, size=self.thumbnail.size)
         self.setImage(self.thumbnail)
@@ -122,15 +127,18 @@ class CipherGUI:
         iv = self.getiv()
         if iv == None:
             return
-        cipher = Cipher(algorithms.TripleDES(key),
+        cipher = Cipher(algorithms.AES(key),
                         modes.CBC(iv), backend=default_backend())
         if self.encrypting:
             enc = cipher.encryptor()
-            ct = enc.update(self.thumbnail.tobytes()) + enc.finalize()
+            padder = padding.PKCS7(128).padder()
+            data = padder.update(self.thumbnail.tobytes()) + padder.finalize()
+            ct = enc.update(data) + enc.finalize()
         else:
             dec = cipher.decryptor()
-            ct = dec.update(self.thumbnail.tobytes()
-                            ) + dec.finalize()
+            padder = padding.PKCS7(128).padder()
+            data = padder.update(self.thumbnail.tobytes()) + padder.finalize()
+            ct = dec.update(data) + dec.finalize()
         self.thumbnail = Image.frombytes(data=ct,
                                          mode=self.thumbnail.mode, size=self.thumbnail.size)
         self.setImage(self.thumbnail)
@@ -142,7 +150,7 @@ class CipherGUI:
         iv = self.getiv()
         if iv == None:
             return
-        cipher = Cipher(algorithms.TripleDES(key),
+        cipher = Cipher(algorithms.AES(key),
                         modes.OFB(iv), backend=default_backend())
         if self.encrypting:
             enc = cipher.encryptor()
@@ -162,10 +170,11 @@ class CipherGUI:
         iv = self.getiv()
         if iv == None:
             return
-        cipher = Cipher(algorithms.TripleDES(key),
+        cipher = Cipher(algorithms.AES(key),
                         modes.CFB(iv), backend=default_backend())
         if self.encrypting:
             enc = cipher.encryptor()
+
             ct = enc.update(self.thumbnail.tobytes()) + enc.finalize()
         else:
             dec = cipher.decryptor()
